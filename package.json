@@ -1,0 +1,26 @@
+{
+  "name": "ayn_wine",
+  "version": "1.0.0",
+  "description": "Full-stack e-commerce site for wine and liquor store",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/server",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web & npm run dev --workspace=apps/server",
+    "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/server",
+    "start": "npm start --workspace=apps/server",
+    "lint": "npm run lint --workspaces",
+    "type-check": "npm run type-check --workspaces"
+  },
+  "keywords": [
+    "wine",
+    "liquor",
+    "ecommerce",
+    "shop"
+  ],
+  "author": "Ayn Wine",
+  "license": "MIT"
+}

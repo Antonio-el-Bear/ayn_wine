@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  phone     String?
+  password  String
+  avatar    String?
+  role      String     @default("customer") // "customer" or "admin"
+  
+  // Relations
+  addresses  Address[]
+  cart       Cart?
+  orders     Order[]
+  wishlist   WishlistItem[]
+  paymentMethods PaymentMethod[]
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Address {
+  id        String     @id @default(cuid())
+  userId    String
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  country   String
+  isDefault Boolean    @default(false)
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]    @relation("ShippingAddress")
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([userId])
+}
+
+model Product {
+  id          String     @id @default(cuid())
+  name        String
+  description String     @db.Text
+  price       Float
+  image       String
+  category    String     // "wine", "beer", "spirits", "liqueur", "champagne", "other"
+  stock       Int
+  rating      Float      @default(0)
+  reviews     Int        @default(0)
+  volume      String?    // e.g., "750ml"
+  alcohol     Float?     // ABV percentage
+  origin      String?    // Country/Region
+  tags        String[]   @default([])
+  
+  // Relations
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  wishlistItems WishlistItem[]
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([category])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  total     Float      @default(0)
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String     @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  
+  cart      Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+}
+
+model Order {
+  id              String     @id @default(cuid())
+  userId          String
+  total           Float
+  status          String     @default("pending") // "pending", "processing", "shipped", "delivered", "cancelled"
+  paymentStatus   String     @default("pending") // "pending", "completed", "failed", "refunded"
+  shippingAddressId String
+  trackingNumber  String?
+  stripePaymentIntentId String?
+  
+  user            User       @relation(fields: [userId], references: [id])
+  shippingAddress Address    @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  items           OrderItem[]
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id            String     @id @default(cuid())
+  orderId       String
+  productId     String
+  productName   String
+  price         Float
+  quantity      Int
+  
+  order         Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product    @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+model PaymentMethod {
+  id            String     @id @default(cuid())
+  userId        String
+  type          String     // "card", "bank_transfer"
+  last4         String?
+  brand         String?    // "visa", "mastercard", etc.
+  expiryMonth   Int?
+  expiryYear    Int?
+  stripePaymentMethodId String?
+  isDefault     Boolean    @default(false)
+  
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String     @id @default(cuid())
+  userId    String
+  productId String
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime   @default(now())
+  
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model EmailLog {
+  id        String     @id @default(cuid())
+  to        String
+  subject   String
+  body      String     @db.Text
+  status    String     @default("pending") // "pending", "sent", "failed"
+  error     String?
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([status])
+  @@index([createdAt])
+}
